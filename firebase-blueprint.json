@@ -1,0 +1,47 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A staff member or admin in the COTRAC system. Emails must be restricted strictly to '@cotracnigeria.com' or 'mojaizs@gmail.com'.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "Full name of the user" },
+        "email": { "type": "string", "description": "Email address" },
+        "role": { "type": "string", "enum": ["admin", "staff"], "description": "User role" },
+        "employeeId": { "type": "string", "description": "Unique employee identifier" },
+        "shiftStart": { "type": "string", "description": "Scheduled duty start time (HH:mm:ss)" },
+        "shiftEnd": { "type": "string", "description": "Scheduled duty end time (HH:mm:ss)" },
+        "pin": { "type": "string", "description": "Numeric PIN for secure logging" },
+        "registeredSignature": { "type": "string", "description": "Official reference signature (base64)" },
+        "latenessTolerance": { "type": "number", "description": "Minutes allowed past shift start before being marked Late" }
+      },
+      "required": ["uid", "displayName", "email", "role"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "A record of a staff member's clock-in and clock-out event.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the staff member" },
+        "employeeName": { "type": "string", "description": "Name of the staff member" },
+        "date": { "type": "string", "format": "date", "description": "Date of attendance (YYYY-MM-DD)" },
+        "clockIn": { "type": "string", "format": "date-time", "description": "Timestamp of clock-in" },
+        "clockOut": { "type": "string", "format": "date-time", "description": "Timestamp of clock-out" },
+        "totalHours": { "type": "number", "description": "Total hours worked" },
+        "status": { "type": "string", "enum": ["Present", "Late", "Incomplete"], "description": "Attendance status" }
+      },
+      "required": ["userId", "date", "clockIn", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Attendance records."
+    }
+  }
+}

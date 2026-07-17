@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, displayName, email, role, employeeId
+    //
+    // Collection: attendance
+    // Fields: userId, employeeName, date, clockIn, clockOut, totalHours, status
+    // ===============================================================
+
+    // Helper Functions
+    function isAllowedEmail(email) {
+      return email == "mojaizs@gmail.com" || email.matches(".*@cotracnigeria\\.com$");
+    }
+
+    // Rules
+    match /users/{userId} {
+      // Allow read to fetch user profiles for verification and rendering
+      allow read: if true;
+      // Allow creation/modification if the email domain matches our strict corporate rules
+      allow create, update: if isAllowedEmail(request.resource.data.email);
+      allow delete: if true;
+    }
+
+    match /attendance/{attendanceId} {
+      allow read, write: if true;
+    }
+  }
+}
