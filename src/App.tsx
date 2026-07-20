@@ -903,7 +903,7 @@ const Header = ({
 }) => {
   return (
     <header className='sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-sm'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-20 py-3 flex flex-wrap items-center justify-between gap-3'>
+      <div className='max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 min-h-[72px] py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-2 sm:gap-3'>
         <div className='flex items-center gap-2 sm:gap-4 shrink-0 min-w-0'>
           <img
             src={LOGO_URL}
@@ -969,7 +969,7 @@ const Header = ({
           </nav>
         )}
 
-        <div className='flex items-center gap-2 sm:gap-6 ml-auto'>
+        <div className='flex items-center gap-2 sm:gap-6 ml-auto w-full sm:w-auto justify-end'>
           {user && (
             <div className='flex items-center gap-2 sm:gap-6'>
               <div className='hidden sm:flex flex-col items-end max-w-[10rem]'>
@@ -1004,7 +1004,7 @@ const Header = ({
 
       {/* Mobile Navigation */}
       {user && (
-        <nav className='lg:hidden flex border-t border-white/40 overflow-x-auto no-scrollbar py-2 px-4 gap-2 bg-white/50'>
+        <nav className='lg:hidden flex border-t border-white/40 overflow-x-auto no-scrollbar py-2 px-2.5 sm:px-4 gap-1.5 sm:gap-2 bg-white/50'>
           {[
             ...(user?.role === 'sign-in' || user?.role === 'admin'
               ? [{ id: 'terminal', label: 'Hub', icon: ShieldAlert }]
@@ -1218,7 +1218,7 @@ const Login = ({
   }
 
   return (
-    <div className='min-h-[calc(100vh-80px)] flex items-center justify-center p-3 sm:p-6'>
+    <div className='min-h-[calc(100vh-80px)] flex items-center justify-center p-2 sm:p-4 lg:p-6'>
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1546,16 +1546,16 @@ const Dashboard = ({
 
   return (
     <div className='space-y-8 sm:space-y-12'>
-      <div className='flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6'>
+      <div className='flex flex-col xl:flex-row justify-between items-start xl:items-end gap-5 sm:gap-6'>
         <div className='space-y-2'>
           <div className='flex items-center gap-3 text-accent font-black uppercase tracking-[0.2em] italic text-xs'>
             <div className='w-12 h-[2px] bg-accent'></div>
             Personnel Authorization Hub
           </div>
-          <h2 className='text-4xl sm:text-5xl lg:text-6xl font-black text-primary tracking-tighter uppercase italic leading-none'>
+          <h2 className='text-3xl sm:text-4xl lg:text-5xl font-black text-primary tracking-tighter uppercase italic leading-none break-words'>
             Welcome, {user.displayName}
           </h2>
-          <p className='text-slate-500 font-medium text-base sm:text-xl'>
+          <p className='text-slate-500 font-medium text-sm sm:text-base lg:text-xl'>
             Operational integrity confirmed. Time stream active.
           </p>
           <div className='flex items-center gap-2 mt-2 text-xs font-semibold text-accent/80 bg-accent/5 border border-accent/10 px-3 py-1.5 rounded-xl w-fit'>
@@ -1563,13 +1563,13 @@ const Dashboard = ({
             <span>Assigned Shift: {user.shiftStart || '09:00'}</span>
           </div>
         </div>
-        <div className='glass w-full xl:w-auto px-6 py-5 sm:px-10 sm:py-8 rounded-[1.75rem] sm:rounded-[2.5rem] flex items-center gap-4 sm:gap-8 shadow-2xl relative overflow-hidden group border-white/40'>
+        <div className='glass w-full xl:w-auto px-5 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8 rounded-[1.5rem] sm:rounded-[2rem] flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 shadow-2xl relative overflow-hidden group border-white/40'>
           <div className='absolute top-0 left-0 w-1.5 h-full bg-accent'></div>
-          <div className='bg-primary/5 p-4 rounded-2xl group-hover:rotate-12 transition-transform shrink-0'>
-            <Clock className='text-accent' size={32} sm:size={40} />
+          <div className='bg-primary/5 p-3 sm:p-4 rounded-2xl group-hover:rotate-12 transition-transform shrink-0'>
+            <Clock className='text-accent' size={28} sm:size={36} />
           </div>
           <div className='flex flex-col'>
-            <span className='text-3xl sm:text-4xl lg:text-5xl font-black text-primary tabular-nums tracking-tighter leading-none'>
+            <span className='text-2xl sm:text-3xl lg:text-4xl font-black text-primary tabular-nums tracking-tighter leading-none'>
               {format(time, 'HH:mm:ss')}
             </span>
             <span className='text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-2 italic'>
@@ -1581,9 +1581,9 @@ const Dashboard = ({
 
       <div className='grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8'>
         {/* Status Card */}
-        <div className='glass xl:col-span-2 p-6 sm:p-8 lg:p-12 rounded-[2rem] sm:rounded-[3rem] flex flex-col justify-between min-h-[320px] sm:min-h-[400px] relative overflow-hidden bg-white/70 border-white/50'>
+        <div className='glass xl:col-span-2 p-5 sm:p-8 lg:p-10 rounded-[1.75rem] sm:rounded-[2.5rem] flex flex-col justify-between min-h-[280px] sm:min-h-[360px] relative overflow-hidden bg-white/70 border-white/50'>
           <div className='absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none'></div>
-          <div className='flex justify-between items-start z-10'>
+          <div className='flex flex-col sm:flex-row justify-between items-start gap-4 z-10'>
             <div>
               <h3 className='text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4 italic'>
                 Personnel Engagement Status
@@ -1607,12 +1607,12 @@ const Dashboard = ({
                 )}
               </div>
             </div>
-            <div className='bg-primary/5 p-6 rounded-[2rem] shadow-inner backdrop-blur-md'>
+            <div className='hidden sm:flex bg-primary/5 p-6 rounded-[2rem] shadow-inner backdrop-blur-md'>
               <Timer className='text-primary/10' size={80} />
             </div>
           </div>
 
-          <div className='flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-6 mt-8 sm:mt-16 z-10'>
+          <div className='flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-6 mt-6 sm:mt-10 z-10'>
             {false ? (
               <div className='w-full p-8 bg-slate-100/40 rounded-3xl border border-slate-200/50 text-center flex flex-col items-center justify-center gap-2'>
                 <ShieldAlert className='text-amber-500' size={32} />
@@ -1631,7 +1631,7 @@ const Dashboard = ({
                 {!isClockedIn && !isClockedOut && (
                   <button
                     onClick={onClockIn}
-                    className='w-full sm:flex-[2] btn-primary py-5 sm:py-6 text-lg sm:text-xl flex items-center justify-center gap-4 shadow-2xl shadow-primary/40 font-black tracking-tight'
+                    className='w-full sm:flex-[2] btn-primary py-4 sm:py-6 text-base sm:text-lg flex items-center justify-center gap-3 shadow-2xl shadow-primary/40 font-black tracking-tight'
                   >
                     <Clock size={28} />
                     AUTHORIZE CHECK-IN
@@ -1640,7 +1640,7 @@ const Dashboard = ({
                 {isClockedIn && (
                   <button
                     onClick={onClockOut}
-                    className='w-full sm:flex-[2] btn-accent py-5 sm:py-6 text-lg sm:text-xl flex items-center justify-center gap-4 shadow-2xl shadow-accent/40 font-black tracking-tight'
+                    className='w-full sm:flex-[2] btn-accent py-4 sm:py-6 text-base sm:text-lg flex items-center justify-center gap-3 shadow-2xl shadow-accent/40 font-black tracking-tight'
                   >
                     <LogOut size={28} />
                     AUTHORIZE CHECK-OUT
@@ -1674,8 +1674,8 @@ const Dashboard = ({
         </div>
 
         {/* Quick Stats */}
-        <div className='space-y-6 sm:space-y-8'>
-          <div className='glass p-6 sm:p-8 lg:p-10 rounded-[2rem] sm:rounded-[3rem] bg-primary text-white border-none shadow-2xl relative overflow-hidden group'>
+        <div className='space-y-5 sm:space-y-8'>
+          <div className='glass p-5 sm:p-8 lg:p-10 rounded-[1.75rem] sm:rounded-[2.5rem] bg-primary text-white border-none shadow-2xl relative overflow-hidden group'>
             <div className='absolute inset-0 bg-gradient-to-br from-white/10 to-transparent'></div>
             <div className='absolute top-0 right-0 w-48 h-48 bg-accent/20 rounded-full -mr-24 -mt-24 blur-[60px] group-hover:scale-150 transition-transform duration-700'></div>
             <h4 className='text-white/40 text-[10px] font-black uppercase tracking-[0.3em] mb-6 italic relative z-10'>
@@ -1712,7 +1712,7 @@ const Dashboard = ({
             </p>
           </div>
 
-          <div className='glass-dark p-6 sm:p-8 lg:p-10 rounded-[2rem] sm:rounded-[3rem] text-white border-white/5 shadow-2xl'>
+          <div className='glass-dark p-5 sm:p-8 lg:p-10 rounded-[1.75rem] sm:rounded-[2.5rem] text-white border-white/5 shadow-2xl'>
             <h4 className='text-white/20 text-[10px] font-black uppercase tracking-[0.3em] mb-8 italic'>
               Stream Pulse
             </h4>
@@ -2137,7 +2137,7 @@ const AttendanceTable = ({
             return (
               <div
                 key={record.id || idx}
-                className='glass rounded-[2rem] p-6 space-y-4 relative overflow-hidden group'
+                className='glass rounded-[1.75rem] p-4 sm:p-6 space-y-4 relative overflow-hidden group'
               >
                 <div className='absolute top-0 right-0 p-4'>
                   <span
@@ -2166,7 +2166,7 @@ const AttendanceTable = ({
                   )}
                 </div>
 
-                <div className='grid grid-cols-2 gap-4 pt-4 border-t border-slate-100'>
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-4 border-t border-slate-100'>
                   <div>
                     <span className='text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1'>
                       Entry
@@ -2187,7 +2187,7 @@ const AttendanceTable = ({
                   </div>
                 </div>
 
-                <div className='flex items-center justify-between pt-4 border-t border-slate-100'>
+                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-100'>
                   <div>
                     <span className='text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1'>
                       Total Hours
@@ -2376,7 +2376,7 @@ const AdminPanel = ({
 
   return (
     <div className='space-y-8 sm:space-y-12'>
-      <div className='flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 px-2 sm:px-0'>
+      <div className='flex flex-col xl:flex-row justify-between items-start xl:items-end gap-5 px-1 sm:px-0'>
         <div className='space-y-2'>
           <div className='flex items-center gap-3 text-accent font-black uppercase tracking-[0.2em] italic text-xs'>
             <div className='w-12 h-[2px] bg-accent'></div>
@@ -2395,14 +2395,14 @@ const AdminPanel = ({
             <>
               <button
                 onClick={onAddUser}
-                className='px-8 py-4 bg-emerald-600 text-white rounded-[1.5rem] font-black uppercase tracking-tight hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 active:scale-95'
+                className='w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-emerald-600 text-white rounded-[1.25rem] sm:rounded-[1.5rem] font-black uppercase tracking-tight hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 active:scale-95'
               >
                 <UserIcon size={20} />
                 Provision Staff
               </button>
               <button
                 onClick={onPurgeDatabase}
-                className='px-8 py-4 bg-rose-600 text-white rounded-[1.5rem] font-black uppercase tracking-tight hover:bg-rose-700 transition-all shadow-xl shadow-rose-500/20 flex items-center justify-center gap-3 active:scale-95'
+                className='w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-rose-600 text-white rounded-[1.25rem] sm:rounded-[1.5rem] font-black uppercase tracking-tight hover:bg-rose-700 transition-all shadow-xl shadow-rose-500/20 flex items-center justify-center gap-3 active:scale-95'
               >
                 <Trash2 size={20} />
                 Purge Database
@@ -2412,7 +2412,7 @@ const AdminPanel = ({
           <button
             onClick={() => setShowUsers(!showUsers)}
             className={cn(
-              'px-8 py-4 rounded-[1.5rem] font-black uppercase tracking-tight transition-all border shadow-xl flex items-center justify-center gap-2 active:scale-95',
+              'w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 rounded-[1.25rem] sm:rounded-[1.5rem] font-black uppercase tracking-tight transition-all border shadow-xl flex items-center justify-center gap-2 active:scale-95',
               showUsers
                 ? 'bg-primary text-white border-primary shadow-primary/30'
                 : 'glass text-slate-600 border-white/40 hover:bg-white/90',
@@ -3796,7 +3796,7 @@ export default function App() {
         setActiveTab={handleTabChange}
       />
 
-      <main className='flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+      <main className='flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8'>
         <AnimatePresence mode='wait'>
           {!user ? (
             <Login
@@ -4288,8 +4288,8 @@ export default function App() {
         preferredType={(selectedStaff || user)?.biometricType}
       />
 
-      <footer className='bg-white border-t border-slate-200 py-6'>
-        <div className='max-w-7xl mx-auto px-4 text-center text-slate-400 text-sm'>
+      <footer className='bg-white border-t border-slate-200 py-4 sm:py-6'>
+        <div className='max-w-7xl mx-auto px-4 text-center text-slate-400 text-xs sm:text-sm'>
           &copy; {new Date().getFullYear()} COTRAC Technology | Security | Fleet
           Management. All rights reserved.
         </div>
