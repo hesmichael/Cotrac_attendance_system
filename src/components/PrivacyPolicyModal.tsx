@@ -58,15 +58,13 @@ export default function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyMod
               </h4>
               <ul className="list-disc pl-5 space-y-1.5 text-slate-600">
                 <li>
-                  <strong className="text-slate-800">Account Credentials:</strong> Employee full name, official corporate email, employee ID number, assigned role, and hashed security access PIN.
+                  <strong className="text-slate-800">Account Credentials:</strong> Employee full name, official corporate email, employee ID number, assigned role, and security access PIN.
                 </li>
                 <li>
                   <strong className="text-slate-800">Attendance Telemetry:</strong> Timestamped clock-in and clock-out occurrences, scheduled shift parameters, calculated duty hours, and lateness records.
                 </li>
                 <li>
-                </li>
-                <li>
-                  <strong className="text-slate-800">Digital Signatures:</strong> Encrypted vector stroke data recorded during shift authorizations and visitor gate logs for compliance validation.
+                  <strong className="text-slate-800">Digital Signatures:</strong> Signature image data recorded during shift authorizations and visitor gate logs for compliance validation.
                 </li>
                 <li>
                   <strong className="text-slate-800">Visitor Gate Manifests:</strong> Full name, contact email, hosting personnel member, and purpose of visit.
@@ -90,7 +88,7 @@ export default function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyMod
                 3. Access Control & Storage Security
               </h4>
               <p>
-                Data is stored in cloud Firestore databases with encryption in transit (TLS 1.3) and at rest (AES-256). Strict Role-Based Access Controls (RBAC) ensure:
+                Data is stored in cloud Firestore databases with Firebase-managed encryption in transit and at rest. Authenticated Firestore rules restrict access by role and record ownership:
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">

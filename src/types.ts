@@ -12,7 +12,6 @@ export interface UserProfile {
   registeredSignature?: string; // Reference signature (base64)
   latenessTolerance?: number; // Minutes
   createdAt?: any;
-  password?: string;
 }
 
 export type AttendanceStatus = 'Present' | 'Late' | 'Incomplete';

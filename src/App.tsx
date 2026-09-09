@@ -7,6 +7,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   onAuthStateChanged, 
   signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
   User,
   updateProfile
 } from 'firebase/auth';
@@ -25,13 +31,13 @@ import {
   orderBy,
   limit,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  deleteField
 } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile, AttendanceRecord, AttendanceStatus, UserRole } from './types';
 import { LOGO_URL } from './constants';
 import { verifySignature } from './lib/gemini';
-import { MOCK_USERS, MOCK_RECORDS } from './data/mockData';
 import { isQuotaError } from './utils/quotaHelper';
 import SignatureCanvas from 'react-signature-canvas';
 import TerminalPanel from './components/TerminalPanel';
@@ -205,13 +211,12 @@ const PinModal = ({
 const AddStaffModal = ({ isOpen, onClose, onAdd }: { 
   isOpen: boolean, 
   onClose: () => void, 
-  onAdd: (data: { email: string, name: string, role: UserRole, employeeId: string, password?: string, pin: string }) => Promise<void>
+  onAdd: (data: { email: string, name: string, role: UserRole, employeeId: string, pin: string }) => Promise<void>
 }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<UserRole>('staff');
   const [employeeId, setEmployeeId] = useState('');
-  const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -234,23 +239,18 @@ const AddStaffModal = ({ isOpen, onClose, onAdd }: {
       setError('Employee ID must be 2-20 characters using only letters, numbers, or hyphens.');
       return;
     }
-    if (password && !validatePasswordStrength(password)) {
-      setError('Password must be at least 6 characters and include a letter, a number, and a special character.');
-      return;
-    }
     if (!/^\d{4,6}$/.test(pin)) {
       setError('PIN must contain 4-6 digits only.');
       return;
     }
     setLoading(true);
-    await onAdd({ email: targetEmail, name, role, employeeId, password: password || undefined, pin });
+    await onAdd({ email: targetEmail, name, role, employeeId, pin });
     setLoading(false);
     onClose();
     setEmail('');
     setName('');
     setRole('staff');
     setEmployeeId('');
-    setPassword('');
     setPin('');
   };
 
@@ -331,16 +331,6 @@ const AddStaffModal = ({ isOpen, onClose, onAdd }: {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
-                <label className="text-xs font-bold text-blue-900 uppercase tracking-wider px-1">Password (Optional)</label>
-                <input 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full input-glass mt-1"
-                  placeholder="Optional"
-                />
-              </div>
-              <div>
                 <label className="text-xs font-bold text-blue-900 uppercase tracking-wider px-1">PIN (4-6 digits)</label>
                 <input 
                   type="password"
@@ -407,19 +397,13 @@ const ChangePasswordModal = ({ isOpen, onClose, user }: {
 
     setLoading(true);
     try {
-      const userRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userRef);
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        if (userData.password && userData.password !== currentPassword) {
-          setError('The current password you entered is incorrect.');
-          setLoading(false);
-          return;
-        }
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser || !firebaseUser.email) {
+        throw new Error('Your authenticated session has expired. Please sign in again.');
       }
-
-      await updateDoc(userRef, { password: newPassword });
+      const credential = EmailAuthProvider.credential(firebaseUser.email, currentPassword);
+      await reauthenticateWithCredential(firebaseUser, credential);
+      await updatePassword(firebaseUser, newPassword);
       setSuccess('Your password has been updated successfully!');
       setCurrentPassword('');
       setNewPassword('');
@@ -464,7 +448,7 @@ const ChangePasswordModal = ({ isOpen, onClose, user }: {
         
         <form onSubmit={handleSubmit} className="p-5 sm:p-7 space-y-4 overflow-y-auto flex-1 min-h-0">
           <div className="space-y-3.5">
-            {user.uid.startsWith('custom-') && (
+            {(
               <div>
                 <label className="text-xs font-bold text-blue-900 uppercase tracking-wider px-1">Current Password</label>
                 <input 
@@ -757,8 +741,7 @@ const Header = ({ user, onLogout, activeTab, setActiveTab, onOpenTour }: {
   );
 };
 
-const Login = ({ onCustomLogin, onOpenPrivacyPolicy, onOpenTerms }: { 
-  onCustomLogin: (user: UserProfile) => void, 
+const Login = ({ onOpenPrivacyPolicy, onOpenTerms }: {
   onOpenPrivacyPolicy?: () => void,
   onOpenTerms?: () => void
 }) => {
@@ -775,138 +758,53 @@ const Login = ({ onCustomLogin, onOpenPrivacyPolicy, onOpenTerms }: {
     e.preventDefault();
     setAuthError('');
     setAuthSuccess('');
-    
-    const cleanEmail = email.trim().toLowerCase();
-    
-    if (cleanEmail !== 'mojaizs@gmail.com' && !cleanEmail.endsWith('@cotracnigeria.com')) {
-      setAuthError('Forbidden: Registration/Sign-in is strictly restricted to @cotracnigeria.com domains or mojaizs@gmail.com.');
-      return;
-    }
-
-    if (emailMode === 'signup') {
-      if (!validatePasswordStrength(password)) {
-        setAuthError('Security Constraint: Password must be at least 6 characters long and contain alphanumeric characters (letters, numbers, and special symbols).');
-        return;
-      }
-    } else {
-      if (password.length < 6) {
-        setAuthError('Security Constraint: Password must be at least 6 characters.');
-        return;
-      }
-    }
-
-    if (emailMode === 'signup' && !/^\d{4,6}$/.test(pin)) {
-      setAuthError('Security Constraint: Secure PIN must be 4-6 digits (numbers only).');
-      return;
-    }
-
-    setEmailLoading(true);
-
     try {
-      const customUid = 'custom-' + cleanEmail;
-      const userRef = doc(db, 'users', customUid);
-      
       if (emailMode === 'signin') {
-        let userDoc = await getDoc(userRef);
-        let userData = userDoc.exists() ? userDoc.data() : null;
-        
-        if (!userData) {
-          const emailDoc = await getDoc(doc(db, 'users', cleanEmail));
-          if (emailDoc.exists()) {
-            userData = emailDoc.data();
-          }
-        }
-        
-        if (!userData) {
-          setAuthError('No registered profile matches this email. Click "New employee? Set your password here" below to register.');
-          setEmailLoading(false);
-          return;
-        }
-
-        if (userData.password !== password) {
-          setAuthError('Incorrect password. Please verify your credentials.');
-          setEmailLoading(false);
-          return;
-        }
-
-        const userProfile: UserProfile = {
-          uid: userData.uid || customUid,
-          displayName: userData.displayName || 'Staff Member',
-          email: userData.email || cleanEmail,
-          role: userData.role || 'staff',
-          employeeId: userData.employeeId || '',
-          shiftStart: userData.shiftStart || '09:00',
-          latenessTolerance: 0,
-          registeredSignature: userData.registeredSignature || '',
-          pin: userData.pin || '',
-        };
-
-        if (!userDoc.exists()) {
-          await setDoc(userRef, { ...userProfile, password });
-        }
-
-        onCustomLogin(userProfile);
+        await signInWithEmailAndPassword(auth, cleanEmail, password);
         setAuthSuccess('Authenticated successfully! Welcome back.');
       } else {
-        const userDoc = await getDoc(userRef);
-        if (userDoc.exists() && userDoc.data().password) {
-          setAuthError('An account with this email already exists. Try signing in.');
-          setEmailLoading(false);
-          return;
-        }
-
+        const credential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
         const emailDoc = await getDoc(doc(db, 'users', cleanEmail));
-        let preData = emailDoc.exists() ? emailDoc.data() : null;
-
-        const isDefaultAdmin = cleanEmail === 'mojaizs@gmail.com';
-        const finalDisplayName = displayName.trim() || (preData ? preData.displayName : 'Staff Member');
-        const finalRole = preData ? preData.role : (isDefaultAdmin ? 'admin' : 'staff');
-        const finalEmployeeId = preData ? preData.employeeId : '';
-
+        const preData = emailDoc.exists() ? emailDoc.data() : null;
         const newProfile: UserProfile = {
-          uid: customUid,
-          displayName: finalDisplayName,
+          uid: credential.user.uid,
+          displayName: displayName.trim() || (preData?.displayName as string) || 'Staff Member',
           email: cleanEmail,
-          role: finalRole,
-          employeeId: finalEmployeeId,
-          shiftStart: (preData && preData.shiftStart) || '09:00',
+          role: (preData?.role as UserRole) || (cleanEmail === 'mojaizs@gmail.com' ? 'admin' : 'staff'),
+          employeeId: (preData?.employeeId as string) || '',
+          shiftStart: (preData?.shiftStart as string) || '09:00',
           latenessTolerance: 0,
-          pin: pin,
-          createdAt: new Date().toISOString(),
-          password: password,
+          pin,
+          createdAt: new Date().toISOString()
         };
-
-        await setDoc(userRef, newProfile);
-        
-        if (emailDoc.exists()) {
-          try {
-            await deleteDoc(doc(db, 'users', cleanEmail));
-          } catch (delErr) {
-            console.warn("Failed to delete temp user doc:", delErr);
-          }
-        }
-
-        onCustomLogin(newProfile);
+        await setDoc(doc(db, 'users', credential.user.uid), newProfile, { merge: true });
+        if (emailDoc.exists()) await deleteDoc(doc(db, 'users', cleanEmail));
         setAuthSuccess('Account created successfully! Welcome to the portal.');
       }
     } catch (err: any) {
-      if (isQuotaError(err)) {
-        console.warn('Custom Authentication Notice (quota reached, using cached session):', err);
-        const isDefaultAdmin = cleanEmail === 'mojaizs@gmail.com';
-        const fallbackProfile: UserProfile = {
-          uid: 'offline-' + cleanEmail,
-          displayName: isDefaultAdmin ? 'Admin (COTRAC)' : cleanEmail.split('@')[0],
-          email: cleanEmail,
-          role: isDefaultAdmin ? 'admin' : 'staff',
-          shiftStart: '09:00',
-          latenessTolerance: 5
-        };
-        onCustomLogin(fallbackProfile);
-        setAuthSuccess('Authenticated in offline mode. Welcome back.');
-      } else {
-        console.error('Custom Authentication Error:', err);
-        setAuthError(err.message || 'An error occurred during authentication.');
-      }
+      console.error('Authentication error:', err);
+      setAuthError(err.code === 'auth/invalid-credential'
+        ? 'Email or password is incorrect.'
+        : err.message || 'An error occurred during authentication.');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || (cleanEmail !== 'mojaizs@gmail.com' && !cleanEmail.endsWith('@cotracnigeria.com'))) {
+      setAuthError('Enter an authorized corporate email address before requesting a password reset.');
+      return;
+    }
+    setEmailLoading(true);
+    setAuthError('');
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail);
+      setAuthSuccess('Password reset instructions have been sent to your email.');
+    } catch (err: any) {
+      console.error('Password reset error:', err);
+      setAuthError('We could not send a reset email. Verify the address or contact an administrator.');
     } finally {
       setEmailLoading(false);
     }
@@ -1056,16 +954,27 @@ const Login = ({ onCustomLogin, onOpenPrivacyPolicy, onOpenTerms }: {
 
           <div className="flex justify-center text-xs">
             {emailMode === 'signin' ? (
-              <button
-                onClick={() => {
-                  setEmailMode('signup');
-                  setAuthError('');
-                  setAuthSuccess('');
-                }}
-                className="text-blue-600 hover:underline font-bold"
-              >
-                New employee? Set your password here
-              </button>
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePasswordReset}
+                  disabled={emailLoading}
+                  className="text-blue-600 hover:underline font-bold disabled:opacity-50"
+                >
+                  Forgot password?
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmailMode('signup');
+                    setAuthError('');
+                    setAuthSuccess('');
+                  }}
+                  className="text-blue-600 hover:underline font-bold"
+                >
+                  New employee? Create an account
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => {
@@ -1921,34 +1830,9 @@ export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [records, setRecords] = useState<AttendanceRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem('cotrac_cached_records');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-  const [allRecords, setAllRecords] = useState<AttendanceRecord[]>(() => {
-    try {
-      const saved = localStorage.getItem('cotrac_cached_all_records');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return [];
-  });
-  const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
-    try {
-      const saved = localStorage.getItem('cotrac_cached_all_users');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    return MOCK_USERS;
-  });
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [showTour, setShowTour] = useState(false);
   const [quotaError, setQuotaError] = useState<string | null>(null);
   const [listenerRetry, setListenerRetry] = useState(0);
@@ -1966,37 +1850,6 @@ export default function App() {
   const [pinAction, setPinAction] = useState<'clockIn' | 'clockOut' | 'registerSignature' | 'unlockProfile' | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<UserProfile | null>(null);
 
-  // Synchronize state into localStorage caches
-  useEffect(() => {
-    if (records.length > 0) {
-      try {
-        localStorage.setItem('cotrac_cached_records', JSON.stringify(records));
-      } catch (e) {
-        console.warn("Could not cache records:", e);
-      }
-    }
-  }, [records]);
-
-  useEffect(() => {
-    if (allRecords.length > 0) {
-      try {
-        localStorage.setItem('cotrac_cached_all_records', JSON.stringify(allRecords));
-      } catch (e) {
-        console.warn("Could not cache allRecords:", e);
-      }
-    }
-  }, [allRecords]);
-
-  useEffect(() => {
-    if (allUsers.length > 0) {
-      try {
-        localStorage.setItem('cotrac_cached_all_users', JSON.stringify(allUsers));
-      } catch (e) {
-        console.warn("Could not cache allUsers:", e);
-      }
-    }
-  }, [allUsers]);
-
   // One-time automated database cleanup: Clear redundant attendance history and demo caches while strictly preserving all users and credentials
   useEffect(() => {
     const isCleaned = localStorage.getItem('cotrac_attendance_cleaned_preserve_users_v3');
@@ -2004,8 +1857,6 @@ export default function App() {
       localStorage.removeItem('cotrac_demo_mode');
       localStorage.removeItem('cotrac_demo_users');
       localStorage.removeItem('cotrac_demo_records');
-      localStorage.removeItem('cotrac_cached_records');
-      localStorage.removeItem('cotrac_cached_all_records');
       setRecords([]);
       setAllRecords([]);
       localStorage.setItem('cotrac_attendance_cleaned_preserve_users_v3', 'true');
@@ -2038,43 +1889,6 @@ export default function App() {
   const checkAndSetQuotaError = (err: any) => {
     if (!isQuotaError(err)) return;
     setQuotaError('Firestore Free Tier Daily Read Quota Exceeded. The application has automatically engaged offline cached mode to preserve all operations.');
-    
-    // Ensure records and users are hydrated from local cache or seed data so the UI remains 100% interactive
-    setRecords(prev => {
-      if (prev && prev.length > 0) return prev;
-      try {
-        const saved = localStorage.getItem('cotrac_cached_records');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-      return user ? MOCK_RECORDS.filter(r => r.userId === user.uid) : [];
-    });
-
-    setAllRecords(prev => {
-      if (prev && prev.length > 0) return prev;
-      try {
-        const saved = localStorage.getItem('cotrac_cached_all_records');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-      return MOCK_RECORDS;
-    });
-
-    setAllUsers(prev => {
-      if (prev && prev.length > 0) return prev;
-      try {
-        const saved = localStorage.getItem('cotrac_cached_all_users');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-      return MOCK_USERS;
-    });
   };
 
   // Redirect staff role from dashboard to profile/history
@@ -2087,31 +1901,10 @@ export default function App() {
   // Auth Listener
   useEffect(() => {
     let isActive = true;
-
-    // 1. Check for custom logged-in user in localStorage first
-    const savedUser = localStorage.getItem('cotrac_custom_user');
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        if (parsed?.uid && parsed.uid.startsWith('demo-user-')) {
-          localStorage.removeItem('cotrac_custom_user');
-        } else {
-          setUser(parsed);
-          setActiveTab(getDefaultTabForRole(parsed.role));
-          setLoading(false);
-        }
-      } catch (e) {
-        console.error("Failed to parse custom user session:", e);
-      }
-    }
+    localStorage.removeItem('cotrac_custom_user');
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!isActive) return;
-      // If there is already a custom user session in localStorage, ignore firebase user changes (to prevent null reset)
-      if (localStorage.getItem('cotrac_custom_user')) {
-        setLoading(false);
-        return;
-      }
 
       if (firebaseUser) {
         if (!isActive) return;
@@ -2131,7 +1924,12 @@ export default function App() {
           if (!isActive) return;
           
           if (userDoc.exists()) {
-            setUser(userDoc.data() as UserProfile);
+            const profileData = userDoc.data();
+            const { password: _legacyPassword, ...safeProfile } = profileData;
+            setUser(safeProfile as UserProfile);
+            if (_legacyPassword !== undefined) {
+              await updateDoc(doc(db, 'users', firebaseUser.uid), { password: deleteField() });
+            }
           } else {
             // 2. Try Email based lookup (for pre-registered users)
             const emailDoc = await getDoc(doc(db, 'users', firebaseUser.email!.toLowerCase()));
@@ -2196,16 +1994,8 @@ export default function App() {
             console.warn("Notice fetching user profile from Firestore:", fetchErr);
           }
           checkAndSetQuotaError(fetchErr);
-          // Fallback profile so the user can still access the application even if Firestore read quota is exceeded
-          const fallbackProfile: UserProfile = {
-            uid: firebaseUser.uid,
-            displayName: firebaseUser.displayName || (firebaseUser.email?.split('@')[0]) || 'Staff Member',
-            email: firebaseUser.email || '',
-            role: firebaseUser.email === 'mojaizs@gmail.com' ? 'admin' : 'staff',
-            shiftStart: '09:00',
-            latenessTolerance: 5
-          };
-          setUser(fallbackProfile);
+          setUser(null);
+          await signOut(auth);
         }
       } else {
         setUser(null);
@@ -2278,7 +2068,7 @@ export default function App() {
       const qUsers = query(collection(db, 'users'));
       unsubscribeUsers = onSnapshot(qUsers, (snapshot) => {
         const data = snapshot.docs.map(doc => ({
-          ...doc.data(),
+          ...(({ password: _legacyPassword, ...safeData }) => safeData)(doc.data()),
           uid: doc.id
         } as UserProfile));
         setAllUsers(data);
@@ -2308,7 +2098,8 @@ export default function App() {
 
     const unsubscribeUser = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
       if (snapshot.exists()) {
-        const updatedData = snapshot.data() as UserProfile;
+        const { password: _legacyPassword, ...safeData } = snapshot.data();
+        const updatedData = safeData as UserProfile;
         setUser(prev => {
           if (!prev) return updatedData;
           if (
@@ -2321,7 +2112,6 @@ export default function App() {
             prev.pin !== updatedData.pin
           ) {
             const merged = { ...prev, ...updatedData, role: updatedData.role || prev.role };
-            localStorage.setItem('cotrac_custom_user', JSON.stringify(merged));
             return merged;
           }
           return prev;
@@ -2357,15 +2147,11 @@ export default function App() {
     }
   }, [user?.role]);
 
-  const handleCustomLogin = (loggedInUser: UserProfile) => {
-    setUser(loggedInUser);
-    setActiveTab(getDefaultTabForRole(loggedInUser.role));
-    localStorage.setItem('cotrac_custom_user', JSON.stringify(loggedInUser));
-  };
-
   const handleLogout = async () => {
-    localStorage.removeItem('cotrac_custom_user');
     setUser(null);
+    localStorage.removeItem('cotrac_cached_records');
+    localStorage.removeItem('cotrac_cached_all_records');
+    localStorage.removeItem('cotrac_cached_all_users');
     await signOut(auth);
   };
 
@@ -2782,9 +2568,9 @@ export default function App() {
     setShowAddStaffModal(true);
   };
 
-  const onRegisterStaff = async (data: { email: string, name: string, role: UserRole, employeeId: string, password?: string, pin: string }) => {
+  const onRegisterStaff = async (data: { email: string, name: string, role: UserRole, employeeId: string, pin: string }) => {
     const cleanEmail = data.email.toLowerCase().trim();
-    const newUid = data.password ? 'custom-' + cleanEmail : cleanEmail;
+    const newUid = cleanEmail;
     const newProfile: UserProfile = {
       uid: newUid,
       displayName: data.name.trim(),
@@ -2794,7 +2580,6 @@ export default function App() {
       shiftStart: '09:00',
       latenessTolerance: 0,
       pin: data.pin,
-      ...(data.password ? { password: data.password } : {}),
       createdAt: new Date().toISOString()
     };
 
@@ -2802,36 +2587,19 @@ export default function App() {
     setAllUsers(prev => [newProfile, ...prev.filter(u => u.email !== cleanEmail)]);
 
     try {
-      if (data.password) {
-        const customUid = 'custom-' + cleanEmail;
-        await setDoc(doc(db, 'users', customUid), {
-          uid: customUid,
-          displayName: data.name,
-          email: cleanEmail,
-          role: data.role,
-          employeeId: data.employeeId,
-          shiftStart: '09:00',
-          latenessTolerance: 0,
-          pin: data.pin,
-          password: data.password,
-          createdAt: serverTimestamp()
-        });
-        alert(`Staff profile for ${data.name} has been created and registered with the provided password and secure PIN.`);
-      } else {
-        // Create email-keyed document for pre-registration
-        await setDoc(doc(db, 'users', cleanEmail), {
-          uid: cleanEmail, // Temporary UID is same as email
-          displayName: data.name,
-          email: cleanEmail,
-          role: data.role,
-          employeeId: data.employeeId,
-          shiftStart: '09:00',
-          latenessTolerance: 0,
-          pin: data.pin,
-          createdAt: serverTimestamp()
-        });
-        alert(`Staff profile for ${data.name} has been pre-registered successfully with secure PIN.`);
-      }
+      // Store a password-free pre-registration. The employee creates their Firebase Auth account.
+      await setDoc(doc(db, 'users', cleanEmail), {
+        uid: cleanEmail,
+        displayName: data.name,
+        email: cleanEmail,
+        role: data.role,
+        employeeId: data.employeeId,
+        shiftStart: '09:00',
+        latenessTolerance: 0,
+        pin: data.pin,
+        createdAt: serverTimestamp()
+      });
+      alert(`Staff profile for ${data.name} has been pre-registered. The employee must create their Firebase Auth password.`);
     } catch (error) {
       if (isQuotaError(error)) {
         console.warn("Staff registered locally (quota reached):", error);
@@ -2957,7 +2725,6 @@ export default function App() {
         <AnimatePresence mode="wait">
           {!user ? (
             <Login 
-              onCustomLogin={handleCustomLogin} 
               onOpenPrivacyPolicy={() => setShowPrivacyPolicy(true)}
               onOpenTerms={() => setShowTermsModal(true)}
             />

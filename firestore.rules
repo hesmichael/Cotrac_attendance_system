@@ -11,22 +11,69 @@ service cloud.firestore {
     // Fields: userId, employeeName, date, clockIn, clockOut, totalHours, status
     // ===============================================================
 
-    // Helper Functions
-    function isAllowedEmail(email) {
-      return email == "mojaizs@gmail.com" || email.matches(".*@cotracnigeria\\.com$");
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // Rules
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    }
+
+    function isOfficer() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ["admin", "sign-in"];
+    }
+
+    function isBootstrapAdmin() {
+      return signedIn() && request.auth.token.email == "mojaizs@gmail.com";
+    }
+
     match /users/{userId} {
-      // Allow read to fetch user profiles for verification and rendering
-      allow read: if true;
-      // Allow creation/modification if the email domain matches our strict corporate rules
-      allow create, update: if isAllowedEmail(request.resource.data.email);
-      allow delete: if true;
+      allow get: if signedIn() && (
+        userId == request.auth.uid ||
+        isAdmin() ||
+        (userId == request.auth.token.email && resource.data.email == request.auth.token.email)
+      );
+      allow list: if isOfficer();
+      allow create: if signedIn() && (
+        isAdmin() ||
+        (isBootstrapAdmin() && request.resource.data.role == "admin") ||
+        (userId == request.auth.uid
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.email == request.auth.token.email
+          && request.resource.data.role == "staff")
+      );
+      allow update: if signedIn() && (
+        isAdmin() ||
+        (userId == request.auth.uid
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.role == resource.data.role)
+      );
+      allow delete: if isAdmin() || (
+        signedIn()
+        && userId == request.auth.token.email
+        && resource.data.email == request.auth.token.email
+      );
     }
 
     match /attendance/{attendanceId} {
-      allow read, write: if true;
+      allow read: if signedIn() && (
+        isOfficer() || resource.data.userId == request.auth.uid
+      );
+      allow create: if signedIn() && (
+        isOfficer() || request.resource.data.userId == request.auth.uid
+      );
+      allow update: if signedIn() && (
+        isOfficer() || (
+          resource.data.userId == request.auth.uid
+          && request.resource.data.userId == resource.data.userId
+        )
+      );
+      allow delete: if isAdmin();
     }
   }
 }
