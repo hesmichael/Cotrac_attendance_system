@@ -214,22 +214,32 @@ const AddStaffModal = ({ isOpen, onClose, onAdd }: {
   const [password, setPassword] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     const targetEmail = email.toLowerCase().trim();
     if (targetEmail !== 'mojaizs@gmail.com' && !targetEmail.endsWith('@cotracnigeria.com')) {
-      alert('Forbidden: Registration email is strictly restricted to @cotracnigeria.com or mojaizs@gmail.com.');
+      setError('Use a @cotracnigeria.com email address, or the authorized mojaizs@gmail.com administrator address.');
+      return;
+    }
+    if (name.trim().length < 2) {
+      setError('Full name must contain at least 2 characters.');
+      return;
+    }
+    if (!/^[A-Za-z0-9-]{2,20}$/.test(employeeId.trim())) {
+      setError('Employee ID must be 2-20 characters using only letters, numbers, or hyphens.');
       return;
     }
     if (password && !validatePasswordStrength(password)) {
-      alert('Security Constraint: Password must be at least 6 characters long and contain alphanumeric characters (letters, numbers, and special symbols).');
+      setError('Password must be at least 6 characters and include a letter, a number, and a special character.');
       return;
     }
     if (!/^\d{4,6}$/.test(pin)) {
-      alert('Security Constraint: PIN must be 4-6 digits (numbers only).');
+      setError('PIN must contain 4-6 digits only.');
       return;
     }
     setLoading(true);
@@ -344,6 +354,12 @@ const AddStaffModal = ({ isOpen, onClose, onAdd }: {
               </div>
             </div>
           </div>
+
+          {error && (
+            <div className="text-xs text-rose-600 font-semibold bg-rose-50 p-2.5 rounded-lg border border-rose-100" role="alert">
+              {error}
+            </div>
+          )}
 
           <div className="pt-2 shrink-0">
             <button 
@@ -1940,6 +1956,7 @@ export default function App() {
   });
   const [showTour, setShowTour] = useState(false);
   const [quotaError, setQuotaError] = useState<string | null>(null);
+  const [listenerRetry, setListenerRetry] = useState(0);
   const [showClockInSignature, setShowClockInSignature] = useState(false);
   const [showClockOutSignature, setShowClockOutSignature] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -2205,7 +2222,12 @@ export default function App() {
   // Data Listeners
   useEffect(() => {
     if (!user) return;
-    if (quotaError) return;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const retryListeners = () => {
+      if (!retryTimer) {
+        retryTimer = setTimeout(() => setListenerRetry(previous => previous + 1), 30000);
+      }
+    };
 
     // Staff records - Recommendation A: Restrict real-time snapshot scope (time boundaries and limits)
     const q = query(
@@ -2229,6 +2251,7 @@ export default function App() {
       } else {
         console.error("Firestore snapshot error for staff records:", error);
       }
+      retryListeners();
     });
 
     // Admin records & Users - Recommendation A: Bound real-time listener to active records
@@ -2250,6 +2273,7 @@ export default function App() {
         } else {
           console.error("Firestore snapshot error for all records:", error);
         }
+        retryListeners();
       });
 
       const qUsers = query(collection(db, 'users'));
@@ -2266,6 +2290,7 @@ export default function App() {
         } else {
           console.error("Firestore snapshot error for users:", error);
         }
+        retryListeners();
       });
     }
 
@@ -2273,12 +2298,14 @@ export default function App() {
       unsubscribeStaff();
       unsubscribeAdmin();
       unsubscribeUsers();
+      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [user, quotaError]);
+  }, [user, listenerRetry]);
 
   // Real-time Active User Profile Listener
   useEffect(() => {
-    if (!user?.uid || quotaError) return;
+    if (!user?.uid) return;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
     const unsubscribeUser = onSnapshot(doc(db, 'users', user.uid), (snapshot) => {
       if (snapshot.exists()) {
@@ -2310,10 +2337,16 @@ export default function App() {
       } else {
         console.error("Firestore snapshot error for active user:", error);
       }
+      if (!retryTimer) {
+        retryTimer = setTimeout(() => setListenerRetry(previous => previous + 1), 30000);
+      }
     });
 
-    return () => unsubscribeUser();
-  }, [user?.uid, quotaError]);
+    return () => {
+      unsubscribeUser();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [user?.uid, listenerRetry]);
 
   useEffect(() => {
     if (user) {
@@ -2339,12 +2372,14 @@ export default function App() {
   };
 
   const handleVisitorRecordChange = (record: AttendanceRecord, isUpdate?: boolean) => {
-    setAllRecords(prev => {
+    const updateRecords = (prev: AttendanceRecord[]) => {
       if (isUpdate) {
         return prev.map(r => r.id === record.id ? record : r);
       }
       return [record, ...prev.filter(r => r.id !== record.id)];
-    });
+    };
+    setRecords(updateRecords);
+    setAllRecords(updateRecords);
   };
 
   const onClockInSave = async (signature: string, bioStamp?: string, bioType?: 'face' | 'fingerprint') => {
@@ -3049,7 +3084,10 @@ export default function App() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => setQuotaError(null)}
+                onClick={() => {
+                  setQuotaError(null);
+                  setListenerRetry(previous => previous + 1);
+                }}
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-amber-950 text-xs font-semibold border border-amber-300 transition-all cursor-pointer shadow-xs"
               >
                 <RefreshCw size={13} />

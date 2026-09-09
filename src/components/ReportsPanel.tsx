@@ -46,6 +46,9 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'staff' | 'visitors'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Present' | 'Late' | 'Incomplete'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const dateValidationError = datePreset === 'custom' && customStartDate && customEndDate && customStartDate > customEndDate
+    ? 'The start date must be on or before the end date.'
+    : '';
 
   // Recommendation B: On-Demand Historical Database Queries (avoids maintaining continuous perpetual listeners)
   const [historicalRecords, setHistoricalRecords] = useState<AttendanceRecord[] | null>(null);
@@ -78,6 +81,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
 
   // Execute on-demand static query for historical dates
   const handleFetchHistoricalRange = async () => {
+    if (dateValidationError) return;
     setIsLoadingHistorical(true);
     try {
       const startStr = format(dateRange.start, 'yyyy-MM-dd');
@@ -555,6 +559,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
                 type="date"
                 value={customStartDate}
                 onChange={e => setCustomStartDate(e.target.value)}
+                aria-invalid={Boolean(dateValidationError)}
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-600 outline-none"
               />
             </div>
@@ -564,9 +569,15 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
                 type="date"
                 value={customEndDate}
                 onChange={e => setCustomEndDate(e.target.value)}
+                aria-invalid={Boolean(dateValidationError)}
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-600 outline-none"
               />
             </div>
+            {dateValidationError && (
+              <p className="sm:col-span-2 text-xs text-rose-600 font-semibold" role="alert">
+                {dateValidationError}
+              </p>
+            )}
           </div>
         )}
 

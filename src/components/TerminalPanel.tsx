@@ -180,8 +180,24 @@ export default function TerminalPanel({ users, records, onAuthorizeClockIn, onAu
       setCheckInError("Full name is required.");
       return;
     }
+    if (visitorName.trim().length < 2 || visitorName.trim().length > 80) {
+      setCheckInError("Full name must be between 2 and 80 characters.");
+      return;
+    }
     if (!visitorHost.trim()) {
       setCheckInError("Please specify whom the visitor is here to see.");
+      return;
+    }
+    if (visitorHost.trim().length < 2 || visitorHost.trim().length > 80) {
+      setCheckInError("Host name must be between 2 and 80 characters.");
+      return;
+    }
+    if (visitorEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(visitorEmail.trim())) {
+      setCheckInError("Enter a valid email address, for example visitor@example.com.");
+      return;
+    }
+    if (visitorRecords.some(record => record.isVisitor && !record.clockOut && record.visitorEmail?.toLowerCase() === visitorEmail.trim().toLowerCase() && visitorEmail.trim())) {
+      setCheckInError("This visitor already has an active visit. Check them out before creating another entry.");
       return;
     }
 
@@ -260,6 +276,11 @@ export default function TerminalPanel({ users, records, onAuthorizeClockIn, onAu
     const now = new Date();
     const clockInDate = new Date(selectedVisitorForCheckOut.clockIn);
     const totalMinutes = differenceInMinutes(now, clockInDate);
+    if (totalMinutes < 0) {
+      setCheckOutError("Checkout time cannot be earlier than the visitor's check-in time. Check the device clock and try again.");
+      setIsSubmittingCheckOut(false);
+      return;
+    }
     const totalHours = totalMinutes / 60;
 
     const updatedVisitorRecord: AttendanceRecord = {
