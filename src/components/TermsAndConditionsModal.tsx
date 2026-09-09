@@ -76,10 +76,10 @@ export default function TermsAndConditionsModal({ isOpen, onClose }: TermsAndCon
             <div className="space-y-3">
               <h4 className="font-bold text-slate-900 flex items-center gap-2">
                 <CheckCircle2 size={16} className="text-blue-600" />
-                3. Biometric and Signature Verification
+                3. Signature Verification
               </h4>
               <p>
-                Optical facial templates and canvas signature strokes captured during duty authorization serve as tamper-evident identity verification. Biometric data is evaluated strictly for presence confirmation and is governed by our Privacy Policy.
+                Canvas signature strokes captured during duty authorization serve as tamper-evident identity verification and are governed by our Privacy Policy.
               </p>
             </div>
 

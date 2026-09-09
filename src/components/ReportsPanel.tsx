@@ -227,7 +227,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
       const idOrHost = r.isVisitor ? `Host: ${r.visitorHost || 'N/A'}` : (staff?.employeeId || 'ID Unassigned');
       const emailStr = r.isVisitor ? (r.visitorEmail || 'N/A') : (staff?.email || 'N/A');
       const hoursStr = r.totalHours !== undefined ? r.totalHours.toFixed(2) : '0.00';
-      const verificationStr = r.biometricVerified ? 'Biometric Face Match' : (r.clockInSignature ? 'Digital Signature' : 'PIN / Password');
+      const verificationStr = r.clockInSignature ? 'Digital Signature' : 'PIN / Password';
       const authBy = r.authorizedByName ? `Authorized by ${r.authorizedByName}` : 'Direct Self';
       const notes = r.isVisitor ? (r.visitorPurpose || 'Meeting') : (r.signatureMatchPercentage ? `AI Match: ${r.signatureMatchPercentage}%` : '');
 
@@ -323,7 +323,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
         const clockOutTime = r.clockOut ? format(new Date(r.clockOut), 'HH:mm:ss') : '--:--:--';
         const hoursStr = r.totalHours !== undefined ? `${r.totalHours.toFixed(1)} hrs` : '--';
         const statusStr = r.status || 'Present';
-        const verificationStr = r.biometricVerified ? 'Face ID Verified' : r.clockInSignature ? 'Signed Canvas' : 'PIN / Auto';
+        const verificationStr = r.clockInSignature ? 'Signed Canvas' : 'PIN / Auto';
 
         return [
           dateStr,
@@ -712,11 +712,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">
-                        {r.biometricVerified ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
-                            <CheckCircle2 size={13} /> Biometric
-                          </span>
-                        ) : r.clockInSignature ? (
+                        {r.clockInSignature ? (
                           <span className="inline-flex items-center gap-1 text-blue-700 font-semibold">
                             <ShieldCheck size={13} /> Signed
                           </span>
@@ -786,7 +782,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
                       {r.isVisitor ? `Visitor (Host: ${r.visitorHost || 'N/A'})` : (staff?.employeeId || 'Staff')}
                     </span>
                     <span>
-                      {r.biometricVerified ? '✓ Biometric' : r.clockInSignature ? '✓ Signed' : 'PIN'}
+                      {r.clockInSignature ? '✓ Signed' : 'PIN'}
                     </span>
                   </div>
                 </div>

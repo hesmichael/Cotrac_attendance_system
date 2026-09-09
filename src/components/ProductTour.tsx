@@ -48,7 +48,7 @@ export default function ProductTour({ isOpen, onClose, userRole = 'staff', userE
       icon: KeyRound,
       color: 'bg-indigo-600 text-white',
       badge: 'Quick Fix Protocol',
-      content: 'To eliminate biometric scanning freezes and cloud API delays, shift events now mandate your confidential 4-to-6 digit Employee Security PIN (default: 1234 for new accounts). Verification runs instantly in-memory with zero database latency.',
+      content: 'Shift events use your confidential 4-to-6 digit Employee Security PIN (default: 1234 for new accounts). Verification runs instantly in-memory with zero database latency.',
       tip: 'You can customize your personal security PIN anytime from your Profile tab.',
       tab: 'profile'
     },

@@ -64,7 +64,6 @@ export default function PrivacyPolicyModal({ isOpen, onClose }: PrivacyPolicyMod
                   <strong className="text-slate-800">Attendance Telemetry:</strong> Timestamped clock-in and clock-out occurrences, scheduled shift parameters, calculated duty hours, and lateness records.
                 </li>
                 <li>
-                  <strong className="text-slate-800">Biometric Verification:</strong> Real-time facial contour descriptors captured locally on-device via camera feed during clock-in authentication. Video streams are analyzed solely in-browser and are not sold, broadcast, or repurposed.
                 </li>
                 <li>
                   <strong className="text-slate-800">Digital Signatures:</strong> Encrypted vector stroke data recorded during shift authorizations and visitor gate logs for compliance validation.

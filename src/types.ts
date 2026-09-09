@@ -13,9 +13,6 @@ export interface UserProfile {
   latenessTolerance?: number; // Minutes
   createdAt?: any;
   password?: string;
-  biometricsEnabled?: boolean;
-  biometricType?: 'face' | 'fingerprint';
-  facePhoto?: string; // Base64 reference face photo
 }
 
 export type AttendanceStatus = 'Present' | 'Late' | 'Incomplete';
@@ -34,16 +31,10 @@ export interface AttendanceRecord {
   signatureMatchPercentage?: number;
   signatureMatchVerified?: boolean;
   signatureMatchReason?: string;
-  biometricVerified?: boolean;
-  biometricType?: 'face' | 'fingerprint';
-  biometricStamp?: string; // base64 string
-  clockOutBiometricVerified?: boolean;
-  clockOutBiometricType?: 'face' | 'fingerprint';
-  clockOutBiometricStamp?: string; // base64 string
   authorizedBy?: string;
   authorizedByName?: string;
   pinVerified?: boolean;
-  verificationMethod?: 'pin_officer' | 'pin' | 'biometric' | 'signature';
+  verificationMethod?: 'pin_officer' | 'pin' | 'signature';
   isVisitor?: boolean;
   visitorEmail?: string;
   visitorHost?: string;

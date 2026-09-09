@@ -421,11 +421,6 @@ export default function TerminalPanel({ users, records, onAuthorizeClockIn, onAu
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-primary text-lg relative">
                           {u.displayName.charAt(0)}
-                          {u.biometricsEnabled && (
-                            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center" title="Biometrics Enabled">
-                              <ShieldCheck size={8} className="text-white" />
-                            </span>
-                          )}
                         </div>
                         <div>
                           <h4 className="font-bold text-primary text-base leading-tight">{u.displayName}</h4>

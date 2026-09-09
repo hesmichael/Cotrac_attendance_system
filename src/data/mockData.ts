@@ -11,8 +11,6 @@ export const MOCK_USERS: UserProfile[] = [
     latenessTolerance: 10,
     pin: '1234',
     registeredSignature: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="40"><text x="10" y="25" font-family="cursive" font-size="20" fill="%232563eb">Amina M.</text></svg>',
-    biometricsEnabled: true,
-    biometricType: 'face'
   },
   {
     uid: 'user-staff-002',
@@ -23,7 +21,6 @@ export const MOCK_USERS: UserProfile[] = [
     shiftStart: '08:30',
     latenessTolerance: 10,
     pin: '1234',
-    biometricsEnabled: false
   },
   {
     uid: 'user-staff-003',
@@ -34,7 +31,6 @@ export const MOCK_USERS: UserProfile[] = [
     shiftStart: '08:30',
     latenessTolerance: 10,
     pin: '1234',
-    biometricsEnabled: false
   },
   {
     uid: 'user-officer-004',
@@ -45,7 +41,6 @@ export const MOCK_USERS: UserProfile[] = [
     shiftStart: '07:00',
     latenessTolerance: 15,
     pin: '0000',
-    biometricsEnabled: false
   }
 ];
 

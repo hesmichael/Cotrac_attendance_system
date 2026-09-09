@@ -3,7 +3,6 @@ export interface VerificationResult {
   match: boolean;
   reason: string;
 }
-
 /**
  * Local lightweight signature analyzer (No external API key or network dependency required)
  * Uses stroke weight and geometry heuristics for instant offline verification.
@@ -33,24 +32,3 @@ export async function verifySignature(
   };
 }
 
-/**
- * Local face descriptor comparison (No external API key or network dependency required)
- */
-export async function verifyFaceMatch(
-  referenceFace: string,
-  verificationFace: string
-): Promise<VerificationResult> {
-  if (!referenceFace || !verificationFace) {
-    return {
-      matchPercentage: 0,
-      match: false,
-      reason: "Missing reference face or verification face image data."
-    };
-  }
-
-  return {
-    matchPercentage: 96,
-    match: true,
-    reason: "Instant local verification: biometric facial structure verified on-device."
-  };
-}

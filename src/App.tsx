@@ -30,7 +30,7 @@ import {
 import { auth, db } from './firebase';
 import { UserProfile, AttendanceRecord, AttendanceStatus, UserRole } from './types';
 import { LOGO_URL } from './constants';
-import { verifySignature, verifyFaceMatch } from './lib/gemini';
+import { verifySignature } from './lib/gemini';
 import { MOCK_USERS, MOCK_RECORDS } from './data/mockData';
 import { isQuotaError } from './utils/quotaHelper';
 import SignatureCanvas from 'react-signature-canvas';
@@ -39,7 +39,6 @@ import ReportsPanel from './components/ReportsPanel';
 import ProductTour from './components/ProductTour';
 import PrivacyPolicyModal from './components/PrivacyPolicyModal';
 import TermsAndConditionsModal from './components/TermsAndConditionsModal';
-import BiometricModal from './components/BiometricModal';
 import { compressCanvas } from './utils/imageCompressor';
 import { 
   Clock, 
@@ -70,11 +69,6 @@ import {
   Compass,
   HelpCircle,
   RefreshCw,
-  ScanFace,
-  Camera,
-  Laptop,
-  Smartphone,
-  Tablet
 } from 'lucide-react';
 import { format, isAfter, parse, differenceInMinutes, startOfDay, endOfDay, addMinutes } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
@@ -1416,11 +1410,6 @@ const AttendanceTable = ({ records, users, isAdmin = false, onEdit, onVerifySign
                                   PIN
                                 </span>
                               )}
-                              {record.biometricVerified && (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold rounded-md">
-                                  Face ID
-                                </span>
-                              )}
                             </div>
                           ) : <span className="text-slate-300 text-xs font-mono">--</span>}
                         </div>
@@ -1970,16 +1959,12 @@ export default function App() {
   const [showOfficialSignatureModal, setShowOfficialSignatureModal] = useState(false);
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
-  const [showBiometricRegisterModal, setShowBiometricRegisterModal] = useState(false);
-  const [showBiometricVerifyModal, setShowBiometricVerifyModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [bioAction, setBioAction] = useState<'register' | 'clockIn' | 'clockOut' | 'registerSignature' | 'test' | null>(null);
   const [isActivitiesUnlocked, setIsActivitiesUnlocked] = useState(false);
   const [isProfileUnlocked, setIsProfileUnlocked] = useState(false);
   const [pinError, setPinError] = useState('');
   const [pinAction, setPinAction] = useState<'clockIn' | 'clockOut' | 'registerSignature' | 'unlockProfile' | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<UserProfile | null>(null);
-  const [pendingSignature, setPendingSignature] = useState<string | null>(null);
 
   // Synchronize state into localStorage caches
   useEffect(() => {
@@ -2163,8 +2148,6 @@ export default function App() {
                 latenessTolerance: preData.latenessTolerance !== undefined ? preData.latenessTolerance : 5,
                 pin: preData.pin || '',
                 registeredSignature: preData.registeredSignature || '',
-                biometricsEnabled: preData.biometricsEnabled || false,
-                biometricType: preData.biometricType || 'face',
                 createdAt: preData.createdAt || serverTimestamp()
               };
               // Pivot the data to UID document
@@ -2335,8 +2318,6 @@ export default function App() {
             prev.shiftStart !== updatedData.shiftStart ||
             prev.latenessTolerance !== updatedData.latenessTolerance ||
             prev.registeredSignature !== updatedData.registeredSignature ||
-            prev.biometricsEnabled !== updatedData.biometricsEnabled ||
-            prev.biometricType !== updatedData.biometricType ||
             prev.pin !== updatedData.pin
           ) {
             const merged = { ...prev, ...updatedData, role: updatedData.role || prev.role };
@@ -2399,11 +2380,11 @@ export default function App() {
     setAllRecords(updateRecords);
   };
 
-  const onClockInSave = async (signature: string, bioStamp?: string, bioType?: 'face' | 'fingerprint') => {
+  const onClockInSave = async (signature: string) => {
     if (!user) return;
     const targetUser = selectedStaff || user;
     
-    const finalSignature = signature || pendingSignature || '';
+    const finalSignature = signature;
     const now = new Date();
     const today = format(now, 'yyyy-MM-dd');
     const clockInTime = now.toISOString();
@@ -2429,13 +2410,11 @@ export default function App() {
       pinVerified: true,
       verificationMethod: isOfficerAuth ? 'pin_officer' : 'pin',
       ...(isOfficerAuth ? { authorizedBy: user.uid, authorizedByName: user.displayName } : {}),
-      ...(bioStamp ? { biometricVerified: true, biometricType: bioType, biometricStamp: bioStamp } : {})
     };
 
     // Optimistically update local records so UI reflects state instantly without extra database reads
     setRecords(prev => [newRecord, ...prev.filter(r => r.id !== recordId)]);
     setAllRecords(prev => [newRecord, ...prev.filter(r => r.id !== recordId)]);
-    setPendingSignature(null);
     setSelectedStaff(null);
     setShowClockInSignature(false);
 
@@ -2467,11 +2446,11 @@ export default function App() {
     setPinError('');
   };
 
-  const onClockOutSave = async (signature: string, bioStamp?: string, bioType?: 'face' | 'fingerprint') => {
+  const onClockOutSave = async (signature: string) => {
     if (!user) return;
     const targetUser = selectedStaff || user;
 
-    const finalSignature = signature || pendingSignature || '';
+    const finalSignature = signature;
     const now = new Date();
     const today = format(now, 'yyyy-MM-dd');
     
@@ -2506,13 +2485,11 @@ export default function App() {
       pinVerified: true,
       verificationMethod: isOfficerAuth ? 'pin_officer' : 'pin',
       ...(isOfficerAuth ? { authorizedBy: user.uid, authorizedByName: user.displayName } : {}),
-      ...(bioStamp ? { clockOutBiometricVerified: true, clockOutBiometricType: bioType, clockOutBiometricStamp: bioStamp } : {})
     };
 
     // Optimistically update records in state without extra reads
     setRecords(prev => prev.map(r => (r.id === targetDocId || (r.userId === targetUser.uid && r.date === today)) ? updatedRecord : r));
     setAllRecords(prev => prev.map(r => (r.id === targetDocId || (r.userId === targetUser.uid && r.date === today)) ? updatedRecord : r));
-    setPendingSignature(null);
     setSelectedStaff(null);
     setShowClockOutSignature(false);
 
@@ -2525,7 +2502,6 @@ export default function App() {
         pinVerified: true,
         verificationMethod: isOfficerAuth ? 'pin_officer' : 'pin',
         ...(isOfficerAuth ? { authorizedBy: user.uid, authorizedByName: user.displayName } : {}),
-        ...(bioStamp ? { clockOutBiometricVerified: true, clockOutBiometricType: bioType, clockOutBiometricStamp: bioStamp } : {})
       });
     } catch (error) {
       if (isQuotaError(error)) {
@@ -2580,10 +2556,7 @@ export default function App() {
 
   const handleRegisterSignatureClick = () => {
     if (!user) return;
-    if (user.biometricsEnabled) {
-      setBioAction('registerSignature');
-      setShowBiometricVerifyModal(true);
-    } else if (user.pin) {
+    if (user.pin) {
       setPinAction('registerSignature');
       setShowPinModal(true);
       setPinError('');
@@ -2619,150 +2592,6 @@ export default function App() {
       setActiveTab('profile');
     }
     setPinAction(null);
-  };
-
-  const onRegisterBiometrics = async (capturedImage: string) => {
-    if (!user) return;
-    const updatedUser = { 
-      ...user, 
-      biometricsEnabled: true, 
-      biometricType: 'face' as const,
-      facePhoto: capturedImage
-    };
-    setUser(updatedUser);
-    localStorage.setItem('cotrac_custom_user', JSON.stringify(updatedUser));
-    setAllUsers(prev => prev.map(u => u.uid === user.uid ? updatedUser : u));
-
-    try {
-      await updateDoc(doc(db, 'users', user.uid), { 
-        biometricsEnabled: true, 
-        biometricType: 'face',
-        facePhoto: capturedImage
-      });
-      alert('Face ID reference registered successfully across all your devices.');
-    } catch (error) {
-      if (isQuotaError(error)) {
-        console.warn("Face ID reference enrolled locally (quota reached):", error);
-        alert('Face ID reference enrolled successfully on this device.');
-      } else {
-        console.warn('Biometric registration notice:', error);
-        alert('Face ID reference enrolled successfully on this device.');
-      }
-    }
-  };
-
-  const onRemoveBiometrics = async () => {
-    if (!user) return;
-    if (!confirm('Are you sure you want to remove Face ID from your profile?')) return;
-    const updatedUser = { 
-      ...user, 
-      biometricsEnabled: false, 
-      facePhoto: '' 
-    };
-    setUser(updatedUser);
-    localStorage.setItem('cotrac_custom_user', JSON.stringify(updatedUser));
-    setAllUsers(prev => prev.map(u => u.uid === user.uid ? updatedUser : u));
-
-    try {
-      await updateDoc(doc(db, 'users', user.uid), { 
-        biometricsEnabled: false, 
-        facePhoto: ''
-      });
-      alert('Face ID reference removed.');
-    } catch (error) {
-      if (isQuotaError(error)) {
-        console.warn("Face ID removed locally (quota reached):", error);
-        alert('Face ID reference removed.');
-      }
-    }
-  };
-
-  const handleBiometricVerifySuccess = async (capturedImage: string, method?: 'optical_face' | 'hardware_biometric') => {
-    if (!user) return;
-    const targetUser = selectedStaff || user;
-
-    if (bioAction === 'test') {
-      alert("Face ID Verification Successful! Your camera and facial template verified properly on this device.");
-      setBioAction(null);
-      return;
-    }
-
-    if (method === 'hardware_biometric') {
-      alert("Biometric Access Granted: Verified via native system Apple Face ID hardware.");
-    } else if (targetUser.biometricsEnabled && targetUser.facePhoto) {
-      try {
-        const result = await verifyFaceMatch(targetUser.facePhoto, capturedImage);
-        if (!result.match) {
-          alert(`Biometric Access Denied: Face ID mismatch (${result.matchPercentage}% confidence). Reason: ${result.reason}`);
-          setPendingSignature(null);
-          setSelectedStaff(null);
-          setBioAction(null);
-          return;
-        }
-        alert(`Biometric Access Granted: Face ID verified with ${result.matchPercentage}% confidence.`);
-      } catch (err) {
-        console.error("Biometric verification error:", err);
-        alert("Face ID verification process failed. Denying entry/exit authorization.");
-        setPendingSignature(null);
-        setSelectedStaff(null);
-        setBioAction(null);
-        return;
-      }
-    } else if (targetUser.biometricsEnabled && !targetUser.facePhoto) {
-      alert("Face ID Verification Aborted: No registered reference photo exists on profile page yet.");
-      setPendingSignature(null);
-      setSelectedStaff(null);
-      setBioAction(null);
-      return;
-    }
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = 320;
-    canvas.height = 120;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      const grad = ctx.createLinearGradient(0, 0, 320, 120);
-      grad.addColorStop(0, '#090d16');
-      grad.addColorStop(1, '#0f172a');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 320, 120);
-      
-      ctx.strokeStyle = '#2563eb';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(6, 6, 308, 108);
-      
-      ctx.strokeStyle = 'rgba(37, 99, 235, 0.2)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(12, 12, 296, 96);
-
-      ctx.fillStyle = '#60a5fa';
-      ctx.font = '900 10px sans-serif';
-      ctx.fillText('COTRAC SECURE SECURITY SYSTEM', 22, 28);
-      
-      ctx.fillStyle = '#10b981';
-      ctx.font = 'bold 15px sans-serif';
-      ctx.fillText(`✓ ${method === 'hardware_biometric' ? 'APPLE HARDWARE FACE ID' : 'BIOMETRIC FACE ID PASS'}`, 22, 54);
-      
-      ctx.fillStyle = '#94a3b8';
-      ctx.font = '8px monospace';
-      ctx.fillText(`TIME: ${new Date().toISOString()}`, 22, 74);
-      
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.font = 'bold 8px monospace';
-      const randomKey = `COTRAC-BIO-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      ctx.fillText(randomKey, 22, 92);
-    }
-    
-    const biometricStamp = canvas ? compressCanvas(canvas, 320, 120, 0.72) : '';
-
-    if (bioAction === 'clockIn') {
-      await onClockInSave(pendingSignature || '', biometricStamp, 'face');
-    } else if (bioAction === 'clockOut') {
-      await onClockOutSave(pendingSignature || '', biometricStamp, 'face');
-    } else if (bioAction === 'registerSignature') {
-      setShowOfficialSignatureModal(true);
-    }
-    setBioAction(null);
   };
 
   const handleVerifySignature = async (recordId: string, refSig: string, logSig: string) => {
@@ -2875,7 +2704,7 @@ export default function App() {
       return;
     }
 
-    if (!confirm('This action will clear all attendance logs, guest passes, and redundant records. ALL user accounts, passwords, employee IDs, and biometrics will be safely preserved. Do you want to proceed?')) {
+    if (!confirm('This action will clear all attendance logs, guest passes, and redundant records. ALL user accounts, passwords, and employee IDs will be safely preserved. Do you want to proceed?')) {
       return;
     }
 
@@ -3259,7 +3088,7 @@ export default function App() {
                     <div className="pt-6 border-t border-slate-100">
                       <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
                         <PenTool size={18} className="text-primary" />
-                        Official Identification & Biometrics
+                        Official Identification
                       </h4>
                       <div className="bg-slate-50 rounded-2xl p-6 space-y-4">
                         <div className="flex justify-between items-center">
@@ -3293,112 +3122,6 @@ export default function App() {
                           </div>
                         )}
 
-                        {/* Dedicated Biometric Face ID Slot */}
-                        <div className="pt-5 border-t border-slate-200 space-y-4">
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                            <div>
-                              <p className="font-bold text-slate-800 flex items-center gap-2">
-                                <ScanFace size={18} className="text-blue-600" />
-                                Biometric Face ID Slot
-                              </p>
-                              <p className="text-xs text-slate-500">
-                                Frictionless face recognition across laptops, tablets, and phones (Windows, Mac, iOS, Android).
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                              {user.biometricsEnabled && user.facePhoto && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setBioAction('test');
-                                    setShowBiometricVerifyModal(true);
-                                  }}
-                                  className="flex-1 sm:flex-none py-2 px-3 rounded-xl border border-blue-200 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 active:scale-95"
-                                  title="Test Face ID camera scan on this device"
-                                >
-                                  <Camera size={14} />
-                                  Test Face ID
-                                </button>
-                              )}
-                              <button 
-                                onClick={() => {
-                                  setBioAction('register');
-                                  setShowBiometricRegisterModal(true);
-                                }}
-                                className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-95 shadow-xs flex items-center justify-center gap-1.5"
-                              >
-                                {user.biometricsEnabled ? 'Update Face Reference' : 'Enroll Face ID'}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Face ID Status & Visual Slot Card */}
-                          {user.biometricsEnabled && user.facePhoto ? (
-                            <div className="p-4 sm:p-5 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 rounded-2xl border border-blue-500/30 text-white shadow-xl space-y-3">
-                              <div className="flex items-center justify-between">
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                                  <CheckCircle2 size={13} />
-                                  Face ID Active & Enrolled
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-mono">
-                                  Biological Template Ready
-                                </span>
-                              </div>
-
-                              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                                <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-blue-400/80 shadow-md bg-slate-800 shrink-0">
-                                  <img 
-                                    src={user.facePhoto} 
-                                    alt="Enrolled Face ID Reference" 
-                                    className="w-full h-full object-cover" 
-                                  />
-                                  <div className="absolute inset-0 bg-blue-500/10 pointer-events-none"></div>
-                                  <div className="absolute bottom-1 right-1 bg-blue-600 rounded-full p-0.5 text-white">
-                                    <CheckCircle2 size={12} />
-                                  </div>
-                                </div>
-                                <div className="space-y-1.5 text-center sm:text-left">
-                                  <h5 className="font-bold text-sm text-slate-100">{user.displayName}</h5>
-                                  <p className="text-xs text-slate-400 leading-relaxed">
-                                    Enrolled biological facial reference active for duty clock-in and authorization.
-                                  </p>
-                                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1 text-[10px] text-slate-300">
-                                    <span className="bg-white/10 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                      <Laptop size={10} /> Win & Mac Laptops
-                                    </span>
-                                    <span className="bg-white/10 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                      <Tablet size={10} /> iPads & Android Tablets
-                                    </span>
-                                    <span className="bg-white/10 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                      <Smartphone size={10} /> iPhones & Androids
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="pt-2 border-t border-white/10 flex justify-between items-center text-xs">
-                                <span className="text-slate-400 text-[11px]">Ready for one-touch facial verification</span>
-                                <button
-                                  type="button"
-                                  onClick={onRemoveBiometrics}
-                                  className="text-rose-400 hover:text-rose-300 hover:underline font-semibold text-[11px]"
-                                >
-                                  Deactivate Face ID
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200 text-blue-900 space-y-2">
-                              <div className="flex items-center gap-2">
-                                <AlertTriangle size={16} className="text-blue-600 shrink-0" />
-                                <span className="font-bold text-xs">No Face ID Template Enrolled</span>
-                              </div>
-                              <p className="text-xs text-slate-600 leading-relaxed">
-                                Click <strong>Enroll Face ID</strong> above to snap or upload your facial template. Works natively on laptops, tablets, and phones across Windows, Mac, iOS Safari, and Android.
-                              </p>
-                            </div>
-                          )}
-                        </div>
                       </div>
                     </div>
 
@@ -3592,22 +3315,6 @@ export default function App() {
         staffName={selectedStaff?.displayName}
         subtitle={selectedStaff ? "Ask employee to enter their confidential security PIN" : undefined}
         error={pinError}
-      />
-
-      <BiometricModal 
-        isOpen={showBiometricRegisterModal}
-        onClose={() => setShowBiometricRegisterModal(false)}
-        onSuccess={onRegisterBiometrics}
-        actionType="register"
-        preferredType={user?.biometricType}
-      />
-
-      <BiometricModal 
-        isOpen={showBiometricVerifyModal}
-        onClose={() => setShowBiometricVerifyModal(false)}
-        onSuccess={handleBiometricVerifySuccess}
-        actionType="verify"
-        preferredType={(selectedStaff || user)?.biometricType}
       />
 
       <footer className="bg-white border-t border-slate-200 py-6">

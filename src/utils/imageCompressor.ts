@@ -1,5 +1,5 @@
 /**
- * COTRAC Biometric & Signature Image Compressor
+ * COTRAC Signature Image Compressor
  * Reduces Firestore document payload size by 85-95% by converting
  * raw oversized canvases and camera frames into lightweight, optimized JPEGs.
  */
@@ -45,41 +45,3 @@ export function compressCanvas(
   }
 }
 
-export function compressVideoFrame(
-  videoElement: HTMLVideoElement,
-  maxDimension = 280,
-  quality = 0.72
-): string {
-  try {
-    const videoWidth = videoElement.videoWidth || 640;
-    const videoHeight = videoElement.videoHeight || 480;
-
-    let width = videoWidth;
-    let height = videoHeight;
-
-    if (width > maxDimension || height > maxDimension) {
-      const ratio = Math.min(maxDimension / width, maxDimension / height);
-      width = Math.round(width * ratio);
-      height = Math.round(height * ratio);
-    }
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return '';
-    }
-
-    // Mirror horizontally so the captured face orientation matches what the user sees in the mirror feed
-    ctx.translate(width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(videoElement, 0, 0, width, height);
-
-    return canvas.toDataURL('image/jpeg', quality);
-  } catch (err) {
-    console.warn("Video frame compression error:", err);
-    return '';
-  }
-}
