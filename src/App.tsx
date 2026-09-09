@@ -95,6 +95,12 @@ const validatePasswordStrength = (pw: string): boolean => {
   return hasLetter && hasNumber && hasSpecial;
 };
 
+const getDefaultTabForRole = (role?: UserRole): string => {
+  if (role === 'sign-in') return 'terminal';
+  if (role === 'admin') return 'admin';
+  return 'attendance';
+};
+
 // --- Components ---
 
 const PinModal = ({ 
@@ -2095,6 +2101,8 @@ export default function App() {
 
   // Auth Listener
   useEffect(() => {
+    let isActive = true;
+
     // 1. Check for custom logged-in user in localStorage first
     const savedUser = localStorage.getItem('cotrac_custom_user');
     if (savedUser) {
@@ -2104,6 +2112,7 @@ export default function App() {
           localStorage.removeItem('cotrac_custom_user');
         } else {
           setUser(parsed);
+          setActiveTab(getDefaultTabForRole(parsed.role));
           setLoading(false);
         }
       } catch (e) {
@@ -2112,6 +2121,7 @@ export default function App() {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!isActive) return;
       // If there is already a custom user session in localStorage, ignore firebase user changes (to prevent null reset)
       if (localStorage.getItem('cotrac_custom_user')) {
         setLoading(false);
@@ -2119,6 +2129,7 @@ export default function App() {
       }
 
       if (firebaseUser) {
+        if (!isActive) return;
         const email = (firebaseUser.email || '').toLowerCase();
         const isValid = email === 'mojaizs@gmail.com' || email.endsWith('@cotracnigeria.com');
         if (!isValid) {
@@ -2132,6 +2143,7 @@ export default function App() {
         try {
           // 1. Try UID based lookup
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (!isActive) return;
           
           if (userDoc.exists()) {
             setUser(userDoc.data() as UserProfile);
@@ -2194,6 +2206,7 @@ export default function App() {
             }
           }
         } catch (fetchErr) {
+          if (!isActive) return;
           if (isQuotaError(fetchErr)) {
             console.warn("Firestore profile fetch notice (quota reached):", fetchErr);
           } else {
@@ -2216,7 +2229,10 @@ export default function App() {
       }
       setLoading(false);
     });
-    return () => unsubscribe();
+    return () => {
+      isActive = false;
+      unsubscribe();
+    };
   }, []);
 
   // Data Listeners
@@ -2323,7 +2339,7 @@ export default function App() {
             prev.biometricType !== updatedData.biometricType ||
             prev.pin !== updatedData.pin
           ) {
-            const merged = { ...prev, ...updatedData };
+            const merged = { ...prev, ...updatedData, role: updatedData.role || prev.role };
             localStorage.setItem('cotrac_custom_user', JSON.stringify(merged));
             return merged;
           }
@@ -2362,6 +2378,7 @@ export default function App() {
 
   const handleCustomLogin = (loggedInUser: UserProfile) => {
     setUser(loggedInUser);
+    setActiveTab(getDefaultTabForRole(loggedInUser.role));
     localStorage.setItem('cotrac_custom_user', JSON.stringify(loggedInUser));
   };
 
