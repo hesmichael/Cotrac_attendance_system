@@ -1,0 +1,6 @@
+{
+  "name": "COTRAC Attendance System",
+  "description": "A professional staff clock-in and clock-out system for COTRAC, featuring real-time tracking, admin dashboards, and attendance history.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
