@@ -633,12 +633,12 @@ const Header = ({ user, onLogout, activeTab, setActiveTab, onOpenTour, onOpenSup
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-xl border-b border-blue-100 shadow-xs">
-      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 min-h-16 sm:min-h-18 py-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
           <img 
             src={LOGO_URL} 
             alt="COTRAC - Technology | Security | Fleet Management" 
-            className="h-8 sm:h-10 w-auto max-w-[130px] sm:max-w-[180px] object-contain"
+            className="h-8 sm:h-10 w-auto max-w-[100px] min-[380px]:max-w-[130px] sm:max-w-[180px] object-contain"
             referrerPolicy="no-referrer"
             onError={(e) => {
               (e.target as any).style.display = 'none';
@@ -656,7 +656,7 @@ const Header = ({ user, onLogout, activeTab, setActiveTab, onOpenTour, onOpenSup
 
         {/* Desktop Navigation (>= 1024px) */}
         {user && (
-          <nav className="hidden lg:flex items-center gap-1.5 xl:gap-2 bg-blue-50/80 p-1.5 rounded-2xl border border-blue-200/60">
+          <nav className="hidden xl:flex items-center gap-1.5 bg-blue-50/80 p-1.5 rounded-2xl border border-blue-200/60">
             {[
               ...((user.role === 'sign-in' || user.role === 'admin') ? [{ id: 'terminal', label: 'Sign-In Hub', icon: ShieldAlert }] : []),
               ...(user.role !== 'staff' ? [{ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
@@ -685,7 +685,7 @@ const Header = ({ user, onLogout, activeTab, setActiveTab, onOpenTour, onOpenSup
         <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {user && (
             <div className="flex items-center gap-2 sm:gap-2.5">
-              <div className="hidden sm:flex lg:hidden xl:flex flex-col items-end mr-1">
+              <div className="hidden xl:flex flex-col items-end mr-1">
                 <span className="text-xs sm:text-sm font-bold text-blue-950 leading-none truncate max-w-[140px]">{user.displayName}</span>
                 <span className="text-[10px] text-blue-600 font-bold uppercase tracking-wider mt-1">{user.role}</span>
               </div>
@@ -707,7 +707,7 @@ const Header = ({ user, onLogout, activeTab, setActiveTab, onOpenTour, onOpenSup
               {onOpenTour && (
                 <button
                   onClick={onOpenTour}
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                  className="hidden sm:flex h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-blue-50 items-center justify-center text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
                   title="Product Tour & Guide"
                   aria-label="Product Tour & Guide"
                 >
@@ -737,7 +737,7 @@ const Header = ({ user, onLogout, activeTab, setActiveTab, onOpenTour, onOpenSup
       
       {/* Mobile & Tablet Navigation (< 1024px: Phones & Tablets) */}
       {user && (
-        <nav className="lg:hidden flex items-center border-t border-slate-200/80 overflow-x-auto no-scrollbar py-2 sm:py-2.5 px-3.5 sm:px-6 gap-2 sm:gap-3 bg-slate-50/80 justify-start md:justify-center">
+        <nav className="xl:hidden grid grid-cols-2 sm:flex sm:flex-wrap sm:justify-center border-t border-slate-200/80 py-2 sm:py-2.5 px-3 sm:px-6 gap-2 bg-slate-50/80">
           {[
             ...((user?.role === 'sign-in' || user?.role === 'admin') ? [{ id: 'terminal', label: 'Sign-In Hub', shortLabel: 'Hub', icon: ShieldAlert }] : []),
             ...(user?.role !== 'staff' ? [{ id: 'dashboard', label: 'Dashboard', shortLabel: 'Dashboard', icon: LayoutDashboard }] : []),
@@ -750,7 +750,7 @@ const Header = ({ user, onLogout, activeTab, setActiveTab, onOpenTour, onOpenSup
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
               className={cn(
-                "flex items-center justify-center gap-2 px-3.5 sm:px-4 md:px-5 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all min-h-[40px] active:scale-95",
+                "flex min-w-0 w-full sm:w-auto items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 rounded-xl text-[11px] sm:text-xs font-bold text-center whitespace-normal transition-all min-h-[40px] active:scale-95",
                 activeTab === tab.id 
                   ? "bg-blue-600 text-white shadow-xs" 
                   : "bg-white text-slate-600 border border-slate-200/80 hover:border-blue-200 hover:text-blue-700"
@@ -1382,9 +1382,9 @@ const AttendanceTable = ({ records, users, isAdmin = false, onEdit, onVerifySign
   return (
     <div className="space-y-6">
       {/* Tablet & Desktop View (visible on md screens 768px and up) */}
-      <div className="hidden md:block bg-white overflow-hidden rounded-3xl border border-slate-200 shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
+      <div className="hidden 2xl:block bg-white overflow-hidden rounded-3xl border border-slate-200 shadow-xs">
+        <div className="w-full overflow-hidden">
+          <table className="w-full table-fixed text-left border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-xs font-bold tracking-wider">
                 <th className="px-5 sm:px-6 py-4">Date</th>
@@ -1510,7 +1510,7 @@ const AttendanceTable = ({ records, users, isAdmin = false, onEdit, onVerifySign
       </div>
 
       {/* Mobile Card View (< 768px: all phone sizes) */}
-      <div className="md:hidden space-y-3.5">
+      <div className="2xl:hidden space-y-3.5">
         {records.length === 0 ? (
           <div className="bg-white p-8 sm:p-12 text-center rounded-2xl border border-slate-200">
             <p className="text-sm text-slate-400 font-medium">No attendance records found.</p>
@@ -1758,9 +1758,9 @@ const AdminPanel = ({ records, users, onUpdateRole, onUpdateShift, onUpdateLaten
         </div>
 
         {showUsers ? (
-          <div className="overflow-x-auto">
-            {/* Tablet & Desktop Table (visible on md screens 768px and up) */}
-            <table className="hidden md:table w-full text-left border-collapse min-w-[700px]">
+          <div className="w-full overflow-hidden">
+            {/* Wide desktop table; cards are used on phones and tablets. */}
+            <table className="hidden 2xl:table w-full table-fixed text-left border-collapse text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-xs font-bold tracking-wider">
                   <th className="px-5 sm:px-6 py-4">Personnel</th>
@@ -1844,7 +1844,7 @@ const AdminPanel = ({ records, users, onUpdateRole, onUpdateShift, onUpdateLaten
             </table>
 
             {/* Mobile Registry Cards (< 768px: all phone sizes) */}
-            <div className="md:hidden p-3.5 sm:p-4 space-y-3.5">
+            <div className="2xl:hidden p-3.5 sm:p-4 space-y-3.5">
               {filteredUsers.length === 0 ? (
                 <p className="py-12 text-center text-slate-400 font-medium text-sm">No personnel found.</p>
               ) : (

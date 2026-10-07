@@ -12,8 +12,22 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  html {
+    overflow-x: clip;
+  }
+
   body {
-    @apply text-slate-800 font-sans min-h-screen relative overflow-x-hidden bg-slate-50;
+    @apply text-slate-800 font-sans min-h-screen relative bg-slate-50;
+    overflow-x: clip;
+    overflow-wrap: anywhere;
     color: #1e293b;
     background-color: #f8fafc;
   }

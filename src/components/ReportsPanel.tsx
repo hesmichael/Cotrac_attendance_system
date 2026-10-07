@@ -755,7 +755,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
 
       {/* Report Records Table (Responsive: Table for tablet/desktop, Clean cards for mobile) */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
           <div className="text-sm font-bold text-blue-950">
             Report Data Results ({filteredRecords.length} records)
           </div>
@@ -765,8 +765,8 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
         </div>
 
         {/* Desktop / Tablet Table View */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        <div className="hidden 2xl:block w-full overflow-hidden">
+          <table className="w-full table-fixed text-left border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-xs font-bold tracking-wider">
                 <th className="px-5 py-3.5">Date</th>
@@ -791,7 +791,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
                   const staff = users.find(u => u.uid === r.userId);
                   return (
                     <tr key={r.id || idx} className="hover:bg-blue-50/30 transition-colors">
-                      <td className="px-5 py-3.5 font-semibold text-slate-900 whitespace-nowrap">
+                      <td className="px-2 py-3 font-semibold text-slate-900 break-words">
                         {r.date ? format(new Date(r.date), 'MMM dd, yyyy') : '--'}
                       </td>
                       <td className="px-5 py-3.5">
@@ -802,7 +802,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
                             : (staff?.employeeId || staff?.email || 'Staff')}
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
+                      <td className="px-2 py-3 break-words">
                         <span className={cn(
                           "px-2.5 py-1 rounded-md text-xs font-bold",
                           r.isVisitor 
@@ -812,16 +812,16 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
                           {r.isVisitor ? 'Visitor' : 'Staff'}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 tabular-nums text-slate-700 whitespace-nowrap">
+                      <td className="px-2 py-3 tabular-nums text-slate-700">
                         {r.clockIn ? format(new Date(r.clockIn), 'HH:mm:ss') : '--'}
                       </td>
-                      <td className="px-5 py-3.5 tabular-nums text-slate-700 whitespace-nowrap">
+                      <td className="px-2 py-3 tabular-nums text-slate-700">
                         {r.clockOut ? format(new Date(r.clockOut), 'HH:mm:ss') : '--:--:--'}
                       </td>
-                      <td className="px-5 py-3.5 font-bold tabular-nums text-blue-950 whitespace-nowrap">
+                      <td className="px-2 py-3 font-bold tabular-nums text-blue-950">
                         {r.totalHours !== undefined ? `${r.totalHours.toFixed(1)} hrs` : '--'}
                       </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
+                      <td className="px-2 py-3">
                         <span className={cn(
                           "px-2.5 py-0.5 rounded-md text-xs font-bold",
                           r.status === 'Present' && "bg-emerald-50 text-emerald-700 border border-emerald-200",
@@ -831,7 +831,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
                           {r.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">
+                      <td className="px-2 py-3 text-xs text-slate-500 break-words">
                         {r.biometricVerified ? (
                           <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
                             <CheckCircle2 size={13} /> Biometric
@@ -856,7 +856,7 @@ export default function ReportsPanel({ records, users, userRole }: ReportsPanelP
         </div>
 
         {/* Mobile Cards View (phone sizes < 768px) */}
-        <div className="md:hidden p-4 space-y-3">
+        <div className="2xl:hidden p-4 space-y-3">
           {filteredRecords.length === 0 ? (
             <p className="py-12 text-center text-slate-400 font-medium text-sm">
               No attendance or gate records matched your filter criteria.
